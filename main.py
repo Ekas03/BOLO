@@ -12,6 +12,7 @@ from aiogram.utils.markdown import hbold
 
 # Token for https://t.me/bookoflovebot
 TOKEN = BOT_TOKEN
+
 # All handlers should be attached to the Router (or Dispatcher)
 dp = Dispatcher()
 
