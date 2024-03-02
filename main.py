@@ -12,9 +12,6 @@ from aiogram.utils.markdown import hbold
 # All handlers should be attached to the Router (or Dispatcher)
 dp = Dispatcher()
 
-# 2222
-# Test branch comment
-
 @dp.message(CommandStart())
 async def command_start_handler(message: Message) -> None:
     """
