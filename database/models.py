@@ -1,21 +1,23 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey, CHAR
-from sqlalchemy.orm import relationship
 from database import Base, engine
 
+# Таблица юзера
 class User(Base):
     __tablename__ = 'Users'
 
     TelegramId = Column(Integer, primary_key=True, index=True)
     FirstName = Column(String(255))
-    Gender = Column(Integer)  # 1 for male, 0 for female
+    Gender = Column(Integer)  # 1 - мужской пол, 0 - женский пол
     CoupleId = Column(Integer, ForeignKey('Couples.Id'), nullable=True)
 
+# Таблица приглашений
 class Invitation(Base):
     __tablename__ = 'Invitations'
 
     Id = Column(CHAR(36), primary_key=True, index=True)
     OwnerId = Column(Integer, ForeignKey('Users.TelegramId'))
 
+# Таблица пары
 class Couple(Base):
     __tablename__ = 'Couples'
 
@@ -25,7 +27,7 @@ class Couple(Base):
     PartnerId = Column(Integer, ForeignKey('Users.TelegramId'))
     DelStatus = Column(Integer)
 
-
+# Таблицы календарь
 class Calendar(Base):
     __tablename__ = 'Calendar'
 
@@ -35,6 +37,7 @@ class Calendar(Base):
     Coordinates = Column(String(512))
     PhotoPath = Column(String(512))
 
+# Таблица задания
 class Task(Base):
     __tablename__ = 'Tasks'
 
@@ -42,6 +45,7 @@ class Task(Base):
     CoupleId = Column(Integer, ForeignKey('Couples.Id'))
     TaskId = Column(Integer)
 
+# Таблица челленджи
 class Challenge(Base):
     __tablename__ = 'Challenges'
 
@@ -50,6 +54,5 @@ class Challenge(Base):
     ChallengeId = Column(Integer)
     Streak = Column(Integer)
     UpdatedAt = Column(Date)
-
 
 Base.metadata.create_all(engine)
