@@ -1,17 +1,13 @@
 import asyncio
 import logging
 import sys
-from config import BOT_TOKEN
+from config import TOKEN
 
 from aiogram import Bot, Dispatcher, Router, types
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram.utils.markdown import hbold
-
-
-# Token for https://t.me/bookoflovebot
-TOKEN = BOT_TOKEN
 
 # All handlers should be attached to the Router (or Dispatcher)
 dp = Dispatcher()
