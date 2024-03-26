@@ -2,6 +2,14 @@ from sqlalchemy import Column, Integer, String, Date, ForeignKey, CHAR
 from sqlalchemy.orm import relationship
 from database import Base, engine
 
+class User(Base):
+    __tablename__ = 'Users'
+
+    TelegramId = Column(Integer, primary_key=True, index=True)
+    FirstName = Column(String(255))
+    Gender = Column(Integer)  # 1 for male, 0 for female
+    CoupleId = Column(Integer, ForeignKey('Couples.Id'), nullable=True)
+
 class Invitation(Base):
     __tablename__ = 'Invitations'
 
