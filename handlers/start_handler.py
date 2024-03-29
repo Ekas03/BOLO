@@ -1,6 +1,7 @@
 import re
 from aiogram import types
 import uuid
+from uuid import uuid4
 from sqlalchemy.orm import Session
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.state import StatesGroup, State
@@ -10,7 +11,7 @@ from main import router
 from database.database import SessionLocal
 from database.crud import (get_user_by_telegram_id, check_invitation_exists_by_uuid, handle_invitation_code,
                            check_user_has_couple, check_invitation_exists, get_invitation_uuid, get_couple_days,
-                           create_user)
+                           create_user, delete_invitation, create_invitation)
 
 # Класс регистрации
 class Registration(StatesGroup):
@@ -84,6 +85,21 @@ def plural_days(value: int):
     return days[2]
 
 
+# Создание личного приглашения
+@router.callback_query(lambda c: c.data == "create_inv")
+async def callback_create_invitation(callback_query: types.CallbackQuery):
+    uuid = str(uuid4())
+    with SessionLocal() as db:
+        create_invitation(db, uuid, callback_query.from_user.id)
+    revoke_button = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Отозвать", callback_data=f"revoke_{uuid}")]
+    ])
+    await callback_query.message.edit_text("Приглашение создано! Ты можешь отозвать его в любой момент. Отправь этот код своему партнёру:",
+                                           reply_markup=revoke_button)
+    await callback_query.message.answer("Привет! Добавь меня в BOLO по коду с помощью команды:")
+    await callback_query.message.answer(f"/add {uuid}")
+
+
 # Обработка кода приглашения
 @router.message(Command("add"))
 async def process_invitation_code(message: Message):
@@ -103,6 +119,17 @@ async def process_invitation_code(message: Message):
                 await message.answer("⛔Возникла ошибка. Пожалуйста, попробуйте еще раз.")
         else:
             await message.answer("⛔Возникла ошибка. Пожалуйста, попробуйте еще раз.")
+
+
+# Функция для отозвания приглашения
+@router.callback_query(lambda callback_query: callback_query.data.startswith("revoke_"))
+async def revoke_invitation(callback_query: types.CallbackQuery):
+    uuid = callback_query.data.split("_")[1]
+    with SessionLocal() as db:
+        delete_invitation(db, callback_query.from_user.id)
+    await callback_query.answer()
+    await callback_query.message.chat.delete_message(message_id=callback_query.message.message_id)
+    await start(message=callback_query.message)
 
 # Проверка имени, указание пола
 @router.message(Registration.waiting_for_name)
@@ -134,3 +161,11 @@ async def process_gender_callback(callback_query: types.CallbackQuery, state: FS
         with SessionLocal() as db:
             create_user(db, callback_query.from_user.id, name, int(callback_query.data), None)
         await start(message=callback_query.message)
+
+
+# Возврат обратно в меню
+@router.callback_query(lambda c: c.data == "back_start")
+async def callback_back_start(callback_query: types.CallbackQuery):
+    await callback_query.message.chat.delete_message(message_id=callback_query.message.message_id)
+    with SessionLocal() as db:
+        await couple_menu(db, message=callback_query.message, userId=callback_query.from_user.id)
