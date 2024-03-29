@@ -1,3 +1,5 @@
+import re
+from aiogram import types
 import uuid
 from sqlalchemy.orm import Session
 from aiogram.filters import CommandStart, Command
@@ -7,7 +9,8 @@ from aiogram.types import Message,InlineKeyboardMarkup, InlineKeyboardButton
 from main import router
 from database.database import SessionLocal
 from database.crud import (get_user_by_telegram_id, check_invitation_exists_by_uuid, handle_invitation_code,
-                           check_user_has_couple, check_invitation_exists, get_invitation_uuid, get_couple_days)
+                           check_user_has_couple, check_invitation_exists, get_invitation_uuid, get_couple_days,
+                           create_user)
 
 # Класс регистрации
 class Registration(StatesGroup):
@@ -21,10 +24,12 @@ async def start(message: Message, state: FSMContext = None):
     with SessionLocal() as db:
         if state != None:
             if get_user_by_telegram_id(db, message.from_user.id) is None:
-                await message.answer("👋 Привет! Как тебя зовут?")
+                await message.answer("Привет! Как тебя зовут?")
                 await state.set_state(Registration.waiting_for_name)
             else:
-                await message.answer(f"Привет, {get_user_by_telegram_id(db, message.from_user.id)}!")
+                await process_user_status(db, message)
+        else:
+            await process_user_status(db, message)
 
 
 # Функция для проверки состояния пользователя
@@ -98,3 +103,34 @@ async def process_invitation_code(message: Message):
                 await message.answer("⛔Возникла ошибка. Пожалуйста, попробуйте еще раз.")
         else:
             await message.answer("⛔Возникла ошибка. Пожалуйста, попробуйте еще раз.")
+
+# Проверка имени, указание пола
+@router.message(Registration.waiting_for_name)
+async def process_name(message: Message, state: FSMContext):
+    name = message.text
+    if not re.match("^[a-zA-Zа-яА-Я]+$", name):
+        await message.answer("Имя не должно содержать специальные символы или цифры. Пожалуйста, введите имя еще раз.")
+        return
+    await state.update_data(name=name)
+    gender_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Женщина 👸", callback_data="0"),
+            InlineKeyboardButton(text="Мужчина 🤴", callback_data="1")
+        ]
+    ])
+    await message.answer(f"Привет, {name}! Выбери свой пол:", reply_markup=gender_keyboard)
+    await state.set_state(Registration.waiting_for_gender)
+
+# Установка пола
+@router.callback_query(Registration.waiting_for_gender)
+async def process_gender_callback(callback_query: types.CallbackQuery, state: FSMContext):
+    gender = callback_query.data
+    user_data = await state.get_data()
+    name = user_data['name']
+    if gender == "1" or gender == "0":
+        await state.update_data(gender=gender)
+        await callback_query.answer()
+        await callback_query.message.chat.delete_message(message_id=callback_query.message.message_id)
+        with SessionLocal() as db:
+            create_user(db, callback_query.from_user.id, name, int(callback_query.data), None)
+        await start(message=callback_query.message)
