@@ -1,9 +1,8 @@
-
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from main import router
-from database.database import SessionLocal
+from database import SessionLocal
 from aiogram import types
-from database.crud import get_ongoing_events, get_couple_id_by_user_id, get_past_events
+from crud import get_ongoing_events, get_couple_id_by_user_id, get_past_events
 
 
 # Открытие календаря
@@ -42,3 +41,12 @@ async def callback_show_past_events(callback_query: types.CallbackQuery):
             await callback_query.message.answer(f"Прошедших событий нет", reply_markup=menu)
         else:
             await callback_query.message.answer(f"Прошедшие события:\n{past_events_str}", reply_markup=menu)
+
+# Возврат назад в свиданиях
+@router.callback_query(lambda c: c.data == "dates")
+async def callback_dates(callback_query: types.CallbackQuery):
+    await callback_query.message.chat.delete_message(message_id=callback_query.message.message_id)
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='🔙 Back', callback_data='back_start')]
+    ])
+    await callback_query.message.answer(f"Свидания", reply_markup=keyboard)
