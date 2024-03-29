@@ -1,9 +1,11 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from main import router
 import json
-from database.database import SessionLocal
+from database import SessionLocal
 from aiogram import types
-from database.crud import get_couple_id_by_user_id, get_challenge_streak, update_challenge_streak
+from crud import get_couple_id_by_user_id, get_challenge_streak, update_challenge_streak
+from aiogram import Router
+
+router = Router()
 
 # Количество челленджей на странице
 CHALLENGES_PER_PAGE = 4

@@ -86,7 +86,7 @@ def handle_invitation_code(db: Session, invitation_id: str, telegram_id: int):
         delete_invitation_by_user(db, telegram_id)
 
         today = datetime.date.today()
-        new_couple = Couple(Created=today, OwnerId=invitation.OwnerId, PartnerId=telegram_id, DelStatus=0)
+        new_couple = Couple(Created=today,OwnerId=invitation.OwnerId, SoulmateId=telegram_id, DelFlag=0)
         db.add(new_couple)
         db.commit()
         db.refresh(new_couple)

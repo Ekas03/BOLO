@@ -6,15 +6,17 @@ from sqlalchemy.orm import Session
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message,InlineKeyboardMarkup, InlineKeyboardButton
-from main import router
-from database.database import SessionLocal
-from database.crud import (get_user_by_telegram_id, check_invitation_exists_by_uuid, handle_invitation_code,
-                           check_user_has_couple, check_invitation_exists, get_invitation_uuid, get_couple_days,
-                           create_user, delete_invitation, create_invitation)
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+from aiogram import Router
+from database import SessionLocal
+from crud import (get_user_by_telegram_id, check_invitation_exists_by_uuid, handle_invitation_code,
+                  check_user_has_couple, check_invitation_exists, get_invitation_uuid, get_couple_days,
+                  create_user, delete_invitation, create_invitation)
+
+router = Router()
 
 # Класс регистрации
-class Registration(StatesGroup):
+class UserRegistration(StatesGroup):
     waiting_for_name = State()
     waiting_for_gender = State()
 
@@ -26,7 +28,7 @@ async def start(message: Message, state: FSMContext = None):
         if state != None:
             if get_user_by_telegram_id(db, message.from_user.id) is None:
                 await message.answer("Привет! Как тебя зовут?")
-                await state.set_state(Registration.waiting_for_name)
+                await state.set_state(UserRegistration.waiting_for_name)
             else:
                 await process_user_status(db, message)
         else:
@@ -67,8 +69,7 @@ async def couple_menu(db: Session, message: Message = None, userId = None):
         [InlineKeyboardButton(text='📅 Календарь', callback_data='calendar')],
         [InlineKeyboardButton(text='✅ Челленджи', callback_data='challenges')],
         [InlineKeyboardButton(text='💞 Задания', callback_data='tasks')],
-        [InlineKeyboardButton(text='Книга любви')],
-        [InlineKeyboardButton(text='🗺 Карта отношений')]
+        [InlineKeyboardButton(text='🗺 Карта отношений', web_app=WebAppInfo(url="https://bolobot.xyz/index.html"))]
     ])
 
     await message.answer(f"💕 МЫ ВМЕСТЕ УЖЕ {couple_days} {plural_days(couple_days)}!!! 💕", reply_markup=keyboard)
@@ -132,7 +133,7 @@ async def revoke_invitation(callback_query: types.CallbackQuery):
     await start(message=callback_query.message)
 
 # Проверка имени, указание пола
-@router.message(Registration.waiting_for_name)
+@router.message(UserRegistration.waiting_for_name)
 async def process_name(message: Message, state: FSMContext):
     name = message.text
     if not re.match("^[a-zA-Zа-яА-Я]+$", name):
@@ -146,10 +147,10 @@ async def process_name(message: Message, state: FSMContext):
         ]
     ])
     await message.answer(f"Привет, {name}! Выбери свой пол:", reply_markup=gender_keyboard)
-    await state.set_state(Registration.waiting_for_gender)
+    await state.set_state(UserRegistration.waiting_for_gender)
 
 # Установка пола
-@router.callback_query(Registration.waiting_for_gender)
+@router.callback_query(UserRegistration.waiting_for_gender)
 async def process_gender_callback(callback_query: types.CallbackQuery, state: FSMContext):
     gender = callback_query.data
     user_data = await state.get_data()
