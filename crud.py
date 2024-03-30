@@ -192,3 +192,27 @@ def new_done_task(db: Session, couple_id: int, task_id: int):
     db.commit()
     db.refresh(new_task)
     return new_task
+
+def update_event_photo(db: Session, event_id: int, photo_id: str):
+    event = db.query(Calendar).filter(Calendar.Id == event_id).first()
+    if event is not None:
+        event.PhotoId = photo_id
+        db.commit()
+
+def update_event_geoposition(db: Session, event_id: int, geoposition: str):
+    event = db.query(Calendar).filter(Calendar.Id == event_id).first()
+    if event is not None:
+        event.Coordinates = geoposition
+        db.commit()
+
+def update_task_geoposition(db: Session, couple_id: int,task_id: int, geoposition: str):
+    task = db.query(Task).filter(Task.CoupleId == couple_id, Task.TaskId == task_id).first()
+    if task is not None:
+        task.Coordinates = geoposition
+        db.commit()
+
+def get_tasks_for_book(db: Session, couple_id: int):
+    return db.query(Task).filter(Task.CoupleId == couple_id, Task.PhotoPath != None).all()
+
+def get_events_for_book(db: Session, couple_id: int):
+    return db.query(Calendar).filter(Calendar.CoupleId == couple_id, Calendar.PhotoPath != None).all()
