@@ -1,6 +1,6 @@
 import datetime
 from sqlalchemy.orm import Session
-from models import User, Invitation, Couple, Calendar, Challenge
+from models import User, Invitation, Couple, Calendar, Challenge, Task
 
 
 # Создание нового пользователя
@@ -154,3 +154,41 @@ def update_challenge_streak(db: Session, challenge_id: int, couple_id: int):
 
     db.commit()
     return True
+
+
+def create_date(db: Session, couple_id: int, title: str, date: datetime.date, coordinates: str = None, photo_path: str = None):
+    new_date = Calendar(CoupleId=couple_id, Title=title, Date=date, Coordinates=coordinates, PhotoPath=photo_path)
+    db.add(new_date)
+    db.commit()
+    db.refresh(new_date)
+    return new_date
+
+def get_all_events(db: Session, couple_id: int):
+    return db.query(Calendar).filter(Calendar.CoupleId == couple_id).all()
+
+def get_all_events_for_map(db: Session, couple_id: int):
+    events = db.query(Calendar).filter(Calendar.CoupleId == couple_id).filter(Calendar.Coordinates != None).filter(Calendar.PhotoPath != None).all()
+    return events
+
+def get_users_from_couple(db: Session, couple_id: int):
+    user1 = db.query(User).filter(User.CoupleId == couple_id).first()
+    user2 = db.query(User).filter(User.CoupleId == couple_id).filter(User.TelegramId != user1.TelegramId).first()
+
+    return user1, user2
+
+def get_done_tasks(db: Session, couple_id: int):
+    return db.query(Task).filter(Task.CoupleId == couple_id, Task.Status == 1).all()
+
+def get_done_tasks_for_map(db: Session, couple_id: int):
+    tasks = db.query(Task).filter(Task.CoupleId == couple_id, Task.Coordinates != None, Task.PhotoPath != None, Task.Status == 1).all()
+    return tasks if tasks else False
+
+def get_count_done_tasks(db: Session, couple_id: int):
+    return db.query(Task).filter(Task.CoupleId == couple_id, Task.Status == 1).count()
+
+def new_done_task(db: Session, couple_id: int, task_id: int):
+    new_task = Task(CoupleId=couple_id, TaskId=task_id, Status=1)
+    db.add(new_task)
+    db.commit()
+    db.refresh(new_task)
+    return new_task
