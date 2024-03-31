@@ -66,10 +66,13 @@ async def couple_menu(db: Session, message: Message = None, userId = None):
         couple_days = "unknown"
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='🗺 Карта отношений', web_app=WebAppInfo(url="https://bolobot.xyz/index.html"))],
+        [InlineKeyboardButton(text='👩‍❤️‍👨 Свидания', callback_data='dates')],
         [InlineKeyboardButton(text='📅 Календарь', callback_data='calendar')],
-        [InlineKeyboardButton(text='✅ Челленджи', callback_data='challenges')],
-        [InlineKeyboardButton(text='💞 Задания', callback_data='tasks')],
-        [InlineKeyboardButton(text='🗺 Карта отношений', web_app=WebAppInfo(url="https://bolobot.xyz/index.html"))]
+        [InlineKeyboardButton(text='💪 Ежедневные задания', callback_data='challenges')],
+        [InlineKeyboardButton(text='🗄 Задания', callback_data='tasks')],
+        [InlineKeyboardButton(text='🪩 Мероприятия', callback_data='events_go')],
+        [InlineKeyboardButton(text='📖 Книга любви', callback_data='go_book')]
     ])
 
     await message.answer(f"💕 МЫ ВМЕСТЕ УЖЕ {couple_days} {plural_days(couple_days)}!!! 💕", reply_markup=keyboard)
