@@ -1,5 +1,6 @@
 import datetime
 import os
+import uuid
 from ftplib import FTP
 
 from aiogram.fsm.context import FSMContext
@@ -9,10 +10,12 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import FTP_HOST, FTP_USER, FTP_PASS, FTP_PIC_DIR
 from ftp_crud import delete_photo_from_ftp, create_ftp_pic_directory, upload_photo_to_ftp
 from handlers.start_handler import start
+from handlers.tasks_handler import handle_photo_task, generate_map, handle_geo_task
 from main import router
 from database import SessionLocal
 from aiogram import types, F
-from crud import get_ongoing_events, get_couple_id_by_user_id, get_past_events, get_all_events, create_date
+from crud import get_ongoing_events, get_couple_id_by_user_id, get_past_events, get_all_events, create_date, \
+    update_event_geoposition
 from models import Calendar
 
 
@@ -146,6 +149,7 @@ async def process_photo(message: types.Message, state: FSMContext):
     event_id = data.get("event_id")
     await message.answer("Фото загружается...")
     if event_id is None:
+        await handle_photo_task(message, state)
         return
     with SessionLocal() as db:
         delete_photo_from_ftp(get_couple_id_by_user_id(db, message.from_user.id), db, event_id)
@@ -173,7 +177,7 @@ async def process_photo(message: types.Message, state: FSMContext):
     await message.answer("Фото загружено успешно!", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔙 Back", callback_data='calendar')]
     ]))
-
+    generate_map(couple_id)
 
 @router.message(F.location)
 async def process_geoposition(message: types.Message, state: FSMContext):
@@ -183,13 +187,15 @@ async def process_geoposition(message: types.Message, state: FSMContext):
     data = await state.get_data()
     event_id = data.get("event_id")
     if event_id is None:
+        await handle_geo_task(message, state)
         return
     with SessionLocal() as db:
+        update_event_geoposition(db, event_id, geoposition)
         couple_id = get_couple_id_by_user_id(db, message.from_user.id)
     await message.answer("Геопозиция обновлена", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔙 Назад", callback_data='redact_events')]
     ]))
-
+    generate_map(couple_id)
 
 @router.callback_query(lambda c: c.data == "dates")
 async def callback_dates(callback_query: types.CallbackQuery):
