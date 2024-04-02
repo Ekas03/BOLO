@@ -8,12 +8,14 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from config import FTP_HOST, FTP_USER, FTP_PASS, FTP_PIC_DIR
 from ftp_crud import create_ftp_pic_directory, upload_photo_task_to_ftp
-from main import router
+from aiogram import Router
 import json
 from database import SessionLocal
 from aiogram import types
 from crud import get_couple_id_by_user_id, get_done_tasks, \
     get_count_done_tasks, new_done_task, update_task_geoposition
+
+router = Router()
 
 TASKS_PER_PAGE = 3
 

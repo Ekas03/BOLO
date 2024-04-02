@@ -1,12 +1,6 @@
 # Bot token
 TOKEN = '6880106682:AAEuon0FRgkdyfkVCwcimoStSRmwRr2ckLU'
 
-# Настройки SSH
-SSH_HOST = '65.109.0.67'
-SSH_PORT = 22
-SSH_USER = 'root'
-SSH_PASSWORD = ''
-
 # Настройки FTP - протокол для передачи файлов
 FTP_HOST = '51.210.63.139'
 FTP_USER = 'bolo'

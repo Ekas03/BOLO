@@ -6,8 +6,6 @@ from config import FTP_HOST, FTP_USER, FTP_PASS, FTP_PIC_DIR
 from database import SessionLocal
 from models import Calendar, Task
 
-
-
 def create_ftp_pic_directory(directory):
     try:
         ftp = FTP(FTP_HOST)

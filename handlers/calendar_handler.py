@@ -2,28 +2,25 @@ import datetime
 import os
 import uuid
 from ftplib import FTP
-
-from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
+from aiogram import F
 from config import FTP_HOST, FTP_USER, FTP_PASS, FTP_PIC_DIR
-from ftp_crud import delete_photo_from_ftp, create_ftp_pic_directory, upload_photo_to_ftp
+from ftp_crud import upload_photo_to_ftp, create_ftp_pic_directory, delete_photo_from_ftp
 from handlers.start_handler import start
-from handlers.tasks_handler import handle_photo_task, generate_map, handle_geo_task
+from handlers.tasks_handler import handle_photo_task, handle_geo_task
 from main import router
 from database import SessionLocal
-from aiogram import types, F
-from crud import get_ongoing_events, get_couple_id_by_user_id, get_past_events, get_all_events, create_date, \
+from aiogram import types
+from crud import get_ongoing_events, get_couple_id_by_user_id, get_last_events, create_date, get_all_events, \
     update_event_geoposition
+from map import generate_map
 from models import Calendar
 
-
+# Количество событий на странице
 EVENTS_PER_PAGE = 3
 
-
-# Открытие календаря
-@router.callback_query(lambda c: c.data == "calendar")
 @router.callback_query(lambda c: c.data == "calendar")
 async def callback_calendar(callback_query: types.CallbackQuery):
     with SessionLocal() as db:
@@ -42,14 +39,12 @@ async def callback_calendar(callback_query: types.CallbackQuery):
         else:
             await callback_query.message.edit_text(f"Будущие события:\n{ongoing_events_str}", reply_markup=keyboard, parse_mode='HTML')
 
-
-# Вывод прошедших событий
-@router.callback_query(lambda c: c.data == "show_past_events")
-async def callback_show_past_events(callback_query: types.CallbackQuery):
+@router.callback_query(lambda c: c.data == "show_last_events")
+async def callback_show_last_events(callback_query: types.CallbackQuery):
     with SessionLocal() as db:
-        past_events = get_past_events(db, get_couple_id_by_user_id(db, callback_query.from_user.id))
+        last_events = get_last_events(db, get_couple_id_by_user_id(db, callback_query.from_user.id))
 
-        last_events_str = "\n".join(f"{event.Title} - {event.Date}" for event in past_events)
+        last_events_str = "\n".join(f"{event.Title} - {event.Date}" for event in last_events)
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text='📝 Изменить событие', callback_data='redact_events')],
@@ -57,20 +52,10 @@ async def callback_show_past_events(callback_query: types.CallbackQuery):
             [InlineKeyboardButton(text='📝 Добавить событие', callback_data='new_date')],
             [InlineKeyboardButton(text='🔙 Назад', callback_data='back_start')]
         ])
-        if not past_events:
+        if not last_events:
             await callback_query.message.edit_text(f"Прошедших событий нет", reply_markup=keyboard)
         else:
             await callback_query.message.edit_text(f"Прошедшие события:\n{last_events_str}", reply_markup=keyboard)
-
-
-@router.callback_query(lambda c: c.data.startswith("next_cal_"))
-async def callback_next_page(callback_query: types.CallbackQuery):
-    page = int(callback_query.data.split("_")[2]) + 1
-    with SessionLocal() as db:
-        events = sorted(get_all_events(db, get_couple_id_by_user_id(db, callback_query.from_user.id)), key=lambda event: event.Date)
-        markup = generate_events_markup(page, events)
-        await callback_query.message.edit_reply_markup(reply_markup=markup)
-
 
 @router.callback_query(lambda c: c.data.startswith("prev_cal_"))
 async def callback_prev_page(callback_query: types.CallbackQuery):
@@ -80,6 +65,13 @@ async def callback_prev_page(callback_query: types.CallbackQuery):
         markup = generate_events_markup(page, events)
         await callback_query.message.edit_reply_markup(reply_markup=markup)
 
+@router.callback_query(lambda c: c.data.startswith("next_cal_"))
+async def callback_next_page(callback_query: types.CallbackQuery):
+    page = int(callback_query.data.split("_")[2]) + 1
+    with SessionLocal() as db:
+        events = sorted(get_all_events(db, get_couple_id_by_user_id(db, callback_query.from_user.id)), key=lambda event: event.Date)
+        markup = generate_events_markup(page, events)
+        await callback_query.message.edit_reply_markup(reply_markup=markup)
 
 def generate_events_markup(page, events):
     start = page * EVENTS_PER_PAGE
@@ -90,13 +82,15 @@ def generate_events_markup(page, events):
         [InlineKeyboardButton(text=event.Title, callback_data=f"view_cal_{event.Id}")]
         for event in page_events
     ]
+
     if page > 0:
         keyboard.append([InlineKeyboardButton(text="⬅️", callback_data=f"prev_cal_{page}")])
+
     if end < len(events):
         keyboard.append([InlineKeyboardButton(text="➡️", callback_data=f"next_cal_{page}")])
+
     keyboard.append([InlineKeyboardButton(text="🔙 Назад", callback_data='calendar')])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
-
 
 @router.callback_query(lambda c: c.data == "redact_events")
 async def callback_redact_events(callback_query: types.CallbackQuery):
@@ -105,7 +99,6 @@ async def callback_redact_events(callback_query: types.CallbackQuery):
         events = sorted(get_all_events(db, get_couple_id_by_user_id(db, callback_query.from_user.id)), key=lambda event: event.Date)
         markup = generate_events_markup(0, events)
         await callback_query.message.answer("Изменить события", reply_markup=markup)
-
 
 @router.callback_query(lambda c: c.data.startswith("view_cal_"))
 async def callback_event(callback_query: types.CallbackQuery):
@@ -125,7 +118,19 @@ async def callback_event(callback_query: types.CallbackQuery):
     ])
     await callback_query.message.edit_text(f"Название: {event.Title}\nДата: {event.Date}", reply_markup=markup)
 
+@router.callback_query(lambda c: c.data.startswith("del_cal_"))
+async def callback_del_event(callback_query: types.CallbackQuery):
+    event_id = int(callback_query.data.split("_")[2])
 
+    with SessionLocal() as db:
+        event = db.query(Calendar).filter(Calendar.Id == event_id).first()
+        if event is not None:
+            db.delete(event)
+            db.commit()
+    await callback_query.message.chat.delete_message(message_id=callback_query.message.message_id)
+    await callback_query.message.answer("Событие удалено", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔙 Назад", callback_data='redact_events')]
+    ]))
 @router.callback_query(lambda c: c.data.startswith("geo_"))
 async def callback_geo(callback_query: types.CallbackQuery, state: FSMContext):
     event_id = int(callback_query.data.split("_")[1])
@@ -142,7 +147,6 @@ async def callback_upload(callback_query: types.CallbackQuery, state: FSMContext
     await callback_query.message.answer("Пожалуйста пришлите фотографию, которую Вы хотите загрузить.")
     await state.set_state(PhotoUpload.waiting_for_photo.state)
 
-
 @router.message(F.photo)
 async def process_photo(message: types.Message, state: FSMContext):
     data = await state.get_data()
@@ -151,8 +155,12 @@ async def process_photo(message: types.Message, state: FSMContext):
     if event_id is None:
         await handle_photo_task(message, state)
         return
-    with SessionLocal() as db:
-        delete_photo_from_ftp(get_couple_id_by_user_id(db, message.from_user.id), db, event_id)
+    try:
+        with SessionLocal() as db:
+            delete_photo_from_ftp(get_couple_id_by_user_id(db, message.from_user.id), db, event_id)
+    except:
+        pass
+
     photo = message.photo[-1]
     file_id = photo.file_id
 
@@ -178,7 +186,6 @@ async def process_photo(message: types.Message, state: FSMContext):
         [InlineKeyboardButton(text="🔙 Back", callback_data='calendar')]
     ]))
     generate_map(couple_id)
-
 @router.message(F.location)
 async def process_geoposition(message: types.Message, state: FSMContext):
     latitude = message.location.latitude
@@ -196,7 +203,6 @@ async def process_geoposition(message: types.Message, state: FSMContext):
         [InlineKeyboardButton(text="🔙 Назад", callback_data='redact_events')]
     ]))
     generate_map(couple_id)
-
 @router.callback_query(lambda c: c.data == "dates")
 async def callback_dates(callback_query: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -225,21 +231,6 @@ async def process_title(message: types.Message, state: FSMContext):
     await state.update_data(title=title)
     await message.answer("Введите дату (в формате ГГГГ-ММ-ДД):")
     await state.set_state(NewDate.Date)
-
-@router.callback_query(lambda c: c.data.startswith("del_cal_"))
-async def callback_del_event(callback_query: types.CallbackQuery):
-    event_id = int(callback_query.data.split("_")[2])
-
-    with SessionLocal() as db:
-        event = db.query(Calendar).filter(Calendar.Id == event_id).first()
-        if event is not None:
-            db.delete(event)
-            db.commit()
-    await callback_query.message.chat.delete_message(message_id=callback_query.message.message_id)
-    await callback_query.message.answer("Событие удалено", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔙 Назад", callback_data='redact_events')]
-    ]))
-
 
 @router.message(NewDate.Date)
 async def process_date(message: types.Message, state: FSMContext):

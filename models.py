@@ -1,52 +1,58 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, CHAR
+from sqlalchemy import Column, BigInteger, String, Date, ForeignKey, CHAR
 from database import Base, engine
 
 class User(Base):
     __tablename__ = 'Users'
 
-    TelegramId = Column(Integer, primary_key=True, index=True)
+    TelegramId = Column(BigInteger, primary_key=True, index=True)
     FirstName = Column(String(255))
-    Gender = Column(Integer)  # 1 for male, 0 for female
-    CoupleId = Column(Integer, ForeignKey('Couples.Id'), nullable=True)
+    Gender = Column(BigInteger)  # 1 for male, 0 for female
+    CoupleId = Column(BigInteger, ForeignKey('Couples.Id'), nullable=True)
+
 
 class Invitation(Base):
     __tablename__ = 'Invitations'
 
     Id = Column(CHAR(36), primary_key=True, index=True)
-    OwnerId = Column(Integer, ForeignKey('Users.TelegramId'))
+    OwnerId = Column(BigInteger, ForeignKey('Users.TelegramId'))
 
 class Couple(Base):
     __tablename__ = 'Couples'
 
-    Id = Column(Integer, primary_key=True, index=True)
+    Id = Column(BigInteger, primary_key=True, index=True)
     Created = Column(Date)
-    OwnerId = Column(Integer, ForeignKey('Users.TelegramId'))
-    SoulmateId = Column(Integer, ForeignKey('Users.TelegramId'))
-    DelFlag = Column(Integer)
+    OwnerId = Column(BigInteger, ForeignKey('Users.TelegramId'))
+    SoulmateId = Column(BigInteger, ForeignKey('Users.TelegramId'))
+    DelFlag = Column(BigInteger)
+
 
 class Calendar(Base):
     __tablename__ = 'Calendar'
 
-    Id = Column(Integer, primary_key=True, index=True)
-    CoupleId = Column(Integer, ForeignKey('Couples.Id'))
+    Id = Column(BigInteger, primary_key=True, index=True)
+    CoupleId = Column(BigInteger, ForeignKey('Couples.Id'))
+    Title = Column(String(255))
     Date = Column(Date)
-    Coordinates = Column(String(255))
-    PhotoPath = Column(String(255))
+    Coordinates = Column(String(255), nullable=True)
+    PhotoPath = Column(String(255), nullable=True)
 
 class Task(Base):
     __tablename__ = 'Tasks'
 
-    Id = Column(Integer, primary_key=True, index=True)
-    CoupleId = Column(Integer, ForeignKey('Couples.Id'))
-    TaskId = Column(Integer)
+    Id = Column(BigInteger, primary_key=True, index=True)
+    CoupleId = Column(BigInteger, ForeignKey('Couples.Id'))
+    TaskId = Column(BigInteger)
+    Status = Column(BigInteger)
+    Coordinates = Column(String(255), nullable=True)
+    PhotoPath = Column(String(255), nullable=True)
 
 class Challenge(Base):
     __tablename__ = 'Challenges'
 
-    Id = Column(Integer, primary_key=True, index=True)
-    CoupleId = Column(Integer, ForeignKey('Couples.Id'))
-    ChallengeId = Column(Integer)
-    Streak = Column(Integer)
+    Id = Column(BigInteger, primary_key=True, index=True)
+    CoupleId = Column(BigInteger, ForeignKey('Couples.Id'))
+    ChallengeId = Column(BigInteger)
+    Streak = Column(BigInteger)
     UpdatedAt = Column(Date)
 
 Base.metadata.create_all(engine)
