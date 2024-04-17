@@ -4,6 +4,7 @@ import json
 from database import SessionLocal
 from aiogram import types
 from crud import get_couple_id_by_user_id, get_challenge_streak, update_challenge_streak
+from random import randint
 
 # Количество челленджей на странице
 CHALLENGES_PER_PAGE = 3
@@ -32,7 +33,7 @@ async def callback_challenges(callback_query: types.CallbackQuery):
         challenges = json.load(f)
 
     markup = generate_challenges_markup(0, challenges)
-    await callback_query.message.edit_text("Ежедневные задания:", reply_markup=markup)
+    await callback_query.message.edit_text("Челленджи:", reply_markup=markup)
 
 @router.callback_query(lambda c: c.data.startswith("next_") or c.data.startswith("prev_"))
 async def callback_page(callback_query: types.CallbackQuery):
@@ -46,7 +47,7 @@ async def callback_page(callback_query: types.CallbackQuery):
         challenges = json.load(f)
 
     markup = generate_challenges_markup(page, challenges)
-    await callback_query.message.edit_text("Ежедневные задания:", reply_markup=markup)
+    await callback_query.message.edit_text("Челленджи:", reply_markup=markup)
 
 def generate_challenge_details_markup(challenge):
     keyboard = [
@@ -74,7 +75,7 @@ async def callback_challenge(callback_query: types.CallbackQuery):
         challenge_streak = 0
 
     markup = generate_challenge_details_markup(challenge)
-    await callback_query.message.edit_text(f"ID: {challenge_id}\n\n{challenge['description']}\n\nСтрейк: {challenge_streak}", reply_markup=markup)
+    await callback_query.message.edit_text(f"ID: {challenge_id}\n\n{challenge['description']}\n\nВыполнено раз: {challenge_streak}", reply_markup=markup)
 
 @router.callback_query(lambda c: c.data.startswith("done_"))
 async def callback_done_challenge(callback_query: types.CallbackQuery):
@@ -87,7 +88,7 @@ async def callback_done_challenge(callback_query: types.CallbackQuery):
 
     await callback_query.answer("Вы выполнили челлендж! ✅")
     await callback_challenges(callback_query)
-    await callback_query.message.delete()
+
 
 @router.callback_query(lambda c: c.data == "back_challenges")
 async def callback_back(callback_query: types.CallbackQuery):
@@ -95,4 +96,4 @@ async def callback_back(callback_query: types.CallbackQuery):
         challenges = json.load(f)
 
     markup = generate_challenges_markup(0, challenges)
-    await callback_query.message.edit_text("Ежедневные задания:", reply_markup=markup)
+    await callback_query.message.edit_text("Челленджи:", reply_markup=markup)

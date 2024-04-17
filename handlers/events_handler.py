@@ -23,7 +23,9 @@ async def get_events(callback_query: types.CallbackQuery, page=1, city=None):
     await callback_query.message.delete()
     if page == 1:
         city = callback_query.data
-    url = f'https://kudago.com/public-api/v1.2/events/?location={city}&actual_since={int(time.time())}&text_format=plain&categories=theater,recreation,quest,photo,party,holiday,exhibition,entertainment,concert,cinema&fields=id,title,description,site_url&page_size=5&page={page}'
+    url = f'https://kudago.com/public-api/v1.2/events/?location={city}&actual_since={int(time.time())}' \
+          f'&text_format=plain&categories=theater,recreation,quest,photo,party,holiday,exhibition,entertainment,concert,' \
+          f'cinema&fields=id,title,description,site_url&page_size=5&page={page}'
 
     response = requests.get(url)
     events = response.json()

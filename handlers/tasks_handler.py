@@ -51,7 +51,7 @@ async def callback_tasks(callback_query: types.CallbackQuery):
     tasks = [task for task in tasks if task['id'] not in done_task_ids]
 
     markup = generate_challenges_markup(0, tasks)
-    await callback_query.message.edit_text(f"BOLOcoins за выполненные задания: {get_count_done_tasks(db, get_couple_id_by_user_id(db, callback_query.from_user.id))}\nЗадания:", reply_markup=markup)
+    await callback_query.message.edit_text(f"BOLOcoins за выполненные задания: {get_count_done_tasks(db, get_couple_id_by_user_id(db, callback_query.from_user.id))}\n\nЗадания:", reply_markup=markup)
 
 @router.callback_query(lambda c: c.data.startswith("npt_") or c.data.startswith("ppt_"))
 async def callback_page(callback_query: types.CallbackQuery):

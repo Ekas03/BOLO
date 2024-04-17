@@ -64,7 +64,7 @@ async def couple_menu(db: Session, message: Message = None, userId = None):
         [InlineKeyboardButton(text='📖 Книга любви', callback_data='go_book')]
     ])
 
-    await message.answer(f"💞 МЫ ВМЕСТЕ УЖЕ {couple_days} {plural_days(couple_days)} 💞", reply_markup=keyboard)
+    await message.answer(f"💞 МЫ ВМЕСТЕ В BOLO {couple_days} {plural_days(couple_days)} 💞", reply_markup=keyboard)
 
 
 @router.message(Command("add"))

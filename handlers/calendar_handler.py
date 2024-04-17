@@ -26,7 +26,11 @@ async def callback_calendar(callback_query: types.CallbackQuery):
     with SessionLocal() as db:
         ongoing_events = get_ongoing_events(db, get_couple_id_by_user_id(db, callback_query.from_user.id))
 
-        ongoing_events_str = "\n".join(f"{event.Title} - {event.Date}" for event in ongoing_events)
+        ongoing_events_str = ""
+        for event in ongoing_events:
+            db_date = str(event.Date)
+            tg_date = db_date[8:10] + '.' + db_date[5:7] + '.' + db_date[0:4]
+            ongoing_events_str += f'{event.Title} - {tg_date}\n'
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text='📝 Изменить событие', callback_data='redact_events')],
@@ -44,13 +48,17 @@ async def callback_show_last_events(callback_query: types.CallbackQuery):
     with SessionLocal() as db:
         last_events = get_last_events(db, get_couple_id_by_user_id(db, callback_query.from_user.id))
 
-        last_events_str = "\n".join(f"{event.Title} - {event.Date}" for event in last_events)
+        last_events_str = ""
+        for event in last_events:
+            db_date = str(event.Date)
+            tg_date = db_date[8:10] + '.' + db_date[5:7] + '.' + db_date[0:4]
+            last_events_str += f'{event.Title} - {tg_date}\n'
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text='📝 Изменить событие', callback_data='redact_events')],
             [InlineKeyboardButton(text='📝 Показать будущие события', callback_data='calendar')],
             [InlineKeyboardButton(text='📝 Добавить событие', callback_data='new_date')],
-            [InlineKeyboardButton(text='🔙 Назад', callback_data='back_start')]
+            [InlineKeyboardButton(text='🔙 Назад', callback_data='calendar')]
         ])
         if not last_events:
             await callback_query.message.edit_text(f"Прошедших событий нет", reply_markup=keyboard)
@@ -186,6 +194,7 @@ async def process_photo(message: types.Message, state: FSMContext):
         [InlineKeyboardButton(text="🔙 Back", callback_data='calendar')]
     ]))
     generate_map(couple_id)
+
 @router.message(F.location)
 async def process_geoposition(message: types.Message, state: FSMContext):
     latitude = message.location.latitude
@@ -203,13 +212,14 @@ async def process_geoposition(message: types.Message, state: FSMContext):
         [InlineKeyboardButton(text="🔙 Назад", callback_data='redact_events')]
     ]))
     generate_map(couple_id)
+
 @router.callback_query(lambda c: c.data == "dates")
 async def callback_dates(callback_query: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='👩‍❤️‍👨 Назначить свидание', callback_data='new_date')],
         [InlineKeyboardButton(text='🔙 Назад', callback_data='back_start')]
     ])
-    await callback_query.message.edit_text(f"Свидания", reply_markup=keyboard)
+    await callback_query.message.edit_text(f"Назначьте здесь свидание! ❤️", reply_markup=keyboard)
 
 
 class NewDate(StatesGroup):
@@ -219,26 +229,28 @@ class NewDate(StatesGroup):
 
 @router.callback_query(lambda c: c.data == "new_date")
 async def callback_new_date(callback_query: types.CallbackQuery, state: FSMContext):
-    await callback_query.message.answer("Введите название (максимум 15 символов):")
+    await callback_query.message.delete()
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='🔙 Назад', callback_data='dates')]])
+    await callback_query.message.answer("Введите название (максимум 15 символов)", reply_markup=keyboard)
     await state.set_state(NewDate.Title)
 
 @router.message(NewDate.Title)
 async def process_title(message: types.Message, state: FSMContext):
     title = message.text
-    if len(title) > 15:
+    if len(title) > 25:
         await message.answer("Название слишком длинное. Пожалуйста, введите название (максимум 15 символов):")
         return
     await state.update_data(title=title)
-    await message.answer("Введите дату (в формате ГГГГ-ММ-ДД):")
+    await message.answer("Введите дату (в формате ДД.MM.ГГГГ):")
     await state.set_state(NewDate.Date)
 
 @router.message(NewDate.Date)
 async def process_date(message: types.Message, state: FSMContext):
     date_text = message.text
     try:
-        date = datetime.datetime.strptime(date_text, "%Y-%m-%d").date()
+        date = datetime.datetime.strptime(date_text, "%d.%m.%Y").date()
     except ValueError:
-        await message.answer("Неверный формат. Пожалуйста, введите дату (в формате ГГГГ-ММ-ДД):")
+        await message.answer("Неверный формат. Пожалуйста, введите дату (в формате ДД.MM.ГГГГ):")
         return
     data = await state.get_data()
     title = data.get("title")

@@ -56,7 +56,7 @@ async def callback_tasks(callback_query: types.CallbackQuery):
     os.remove(f"./{couple_id}.json")
     response = requests.get(f'https://bolobot.xyz/src/gett.php?folder=c{couple_id}')
     if response.status_code == 200:
-        response = requests.get(f'https://bolobot.xyz/src/c{couple_id}/images.pdf')
+        response = requests.get(f'https://bolobot.xyz/src/c{couple_id}/BOOKOFLOVE.pdf')
         await callback_query.message.answer(
-            f"Книга успешно создана, Вы можете скачать ее [ниже](https://bolobot.xyz/src/c{couple_id}/images.pdf?v={random.randint(0, 10000)})",
+            f"Книга успешно создана, Вы можете скачать ее [ниже](https://bolobot.xyz/src/c{couple_id}/BOOKOFLOVE.pdf?v={random.randint(0, 10000)})",
             parse_mode='Markdown')
