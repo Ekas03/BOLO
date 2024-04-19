@@ -1,5 +1,5 @@
 # Bot token
-TOKEN = '6880106682:AAEuon0FRgkdyfkVCwcimoStSRmwRr2ckLU'
+TOKEN = ''
 
 # Настройки FTP - протокол для передачи файлов
 FTP_HOST = '51.210.63.139'
